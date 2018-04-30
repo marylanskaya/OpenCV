@@ -1,0 +1,24 @@
+import numpy as np
+import cv2 as cv
+import matplotlib.pyplot as plt
+
+img = cv.imread("apple.jpg")
+img2 = cv.cvtColor(img, cv.COLOR_BGR2HSV)
+cv.waitKey(0)
+porog = 150
+img1 = img2[:,:,2]
+
+mask = img1 > porog
+print(mask[125, 164])
+mask1 = np.empty(mask.shape,dtype="uint8")
+for i in range(mask.shape[0]):
+    for j in range(mask.shape[1]):
+        if mask[i, j] == True:
+            mask1[i, j] = int(1)
+        else:
+            mask1[i,j]= int(0)
+
+res = cv.bitwise_and(img, img, mask = mask1)
+cv.imshow('result', res)
+cv.waitKey(0)
+cv.destroyWindow('result')
