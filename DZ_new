@@ -3,34 +3,39 @@ import numpy as np
 import math
 import random as rn
 
-z = 18 # номер картинки
-img = cv2.imread("car"+str(z)+".jpg",0)
+z = 18  # номер картинки
+img = cv2.imread("car" + str(z) + ".jpg", 0)
 height, width = img.shape[:2]
-img = cv2.medianBlur(img,5)
-cimg = cv2.cvtColor(img,cv2.COLOR_GRAY2BGR)
+img = cv2.medianBlur(img, 5)
+cimg = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
 
-circles = cv2.HoughCircles(img,cv2.HOUGH_GRADIENT,1,minDist=1,param1=100,param2=50,minRadius=int(width/35),maxRadius=100)
+circles = cv2.HoughCircles(img, cv2.HOUGH_GRADIENT, 1, minDist=1, param1=100,
+                           param2=50, minRadius=int(width / 35), maxRadius=100)
 circles = np.uint16(np.around(circles))
 
 x = []
 y = []
 rad = []
 
+
 # для сравнения двух кругов
-def equal_cir(x,y,r,x1,y1,r1):
-    if (abs(x-x1)<width/30) and (abs(y - y1)<height/30) and (abs(r - r1)<width/60):
+def equal_cir(x, y, r, x1, y1, r1):
+    if (abs(x - x1) < width / 30) and (abs(y - y1) < height / 30) \
+            and (abs(r - r1) < width / 60):
         return 1
     else:
         return 0
 
-def eq(x,y,r,x1,y1,r1):
-    dist = math.sqrt((x - x1)**(2.0) + (y - y1)**(2.0))
+
+def eq(x, y, r, x1, y1, r1):
+    dist = math.sqrt((x - x1) ** (2.0) + (y - y1) ** (2.0))
     if dist < (r + r1):
         return 1
     else:
         return 0
 
-for i in circles[0,:]:
+
+for i in circles[0, :]:
     x.append(int(i[0]))
     y.append(int(i[1]))
     rad.append(int(i[2]))
@@ -40,48 +45,59 @@ cir = []
 # отбор подходящих кругов (по координатам центра и радиусу)
 for i in range(len(x)):
     for j in range(len(x)):
-        if(j <= i): continue
-        if math.fabs(y[i] - y[j])>height/20:
-           continue
-        if math.fabs(rad[i]-rad[j])>10:
+        if (j <= i):
             continue
-        if math.fabs(x[i] - x[j])<(rad[i]+rad[j])*3:
+        if math.fabs(y[i] - y[j]) > height / 20:
             continue
-        if math.fabs(x[i] - x[j])>(rad[i]+rad[j])*7:
+        if math.fabs(rad[i] - rad[j]) > 10:
             continue
-        cir.append([i,j])
+        if math.fabs(x[i] - x[j]) < (rad[i] + rad[j]) * 3:
+            continue
+        if math.fabs(x[i] - x[j]) > (rad[i] + rad[j]) * 7:
+            continue
+        cir.append([i, j])
+
 
 # показывает можно ли считать круги одинаковыми
 def same(cir1, cir2):
-    r1 = eq(x[cir1[0]], y[cir1[0]], rad[cir1[0]], x[cir2[0]], y[cir2[0]], rad[cir2[0]])
-    r2 = eq(x[cir1[1]], y[cir1[1]], rad[cir1[1]], x[cir2[1]], y[cir2[1]], rad[cir2[1]])
-    return (r1+r2 == 2)
+    r1 = eq(x[cir1[0]], y[cir1[0]], rad[cir1[0]],
+            x[cir2[0]], y[cir2[0]], rad[cir2[0]])
+    r2 = eq(x[cir1[1]], y[cir1[1]], rad[cir1[1]],
+            x[cir2[1]], y[cir2[1]], rad[cir2[1]])
+    return r1 + r2 == 2
+
 
 # выбирает лучший круг из почти одинаковых
 def score(cir1):
     best_alpha = 9.2
-    dist = math.sqrt((x[cir1[0]] - x[cir1[1]])**(2.0) + (y[cir1[0]] - y[cir1[1]])**(2.0))
-    scr1 = dist / ((rad[cir1[0]]+rad[cir1[1]])/2.0)
-    scr2 = dist / max(rad[cir1[0]],rad[cir1[1]])
+    dist = math.sqrt((x[cir1[0]] - x[cir1[1]]) ** 2.0 +
+                     (y[cir1[0]] - y[cir1[1]]) ** 2.0)
+    scr1 = dist / ((rad[cir1[0]] + rad[cir1[1]]) / 2.0)
+    scr2 = dist / max(rad[cir1[0]], rad[cir1[1]])
     scr3 = dist / min(rad[cir1[0]], rad[cir1[1]])
     scr = math.fabs(scr1 - best_alpha)
-    if math.fabs(scr2 - best_alpha) > scr: scr = math.fabs(scr2 - best_alpha)
-    if math.fabs(scr3 - best_alpha) > scr: scr = math.fabs(scr3 - best_alpha)
+    if math.fabs(scr2 - best_alpha) > scr:
+        scr = math.fabs(scr2 - best_alpha)
+    if math.fabs(scr3 - best_alpha) > scr:
+        scr = math.fabs(scr3 - best_alpha)
     return scr
 
-is_ok = [True]*len(cir)
+
+is_ok = [True] * len(cir)
 
 for i in range(len(cir)):
     for j in range(len(cir)):
-        if j <= i: continue
-        if (not is_ok[i]) or (not is_ok[j]): continue
+        if j <= i:
+            continue
+        if (not is_ok[i]) or (not is_ok[j]):
+            continue
         c1 = list(cir[i])
         c2 = list(cir[j])
-        if same(c1,c2):
+        if same(c1, c2):
             if score(c1) < score(c2):
-               is_ok[j] = False
+                is_ok[j] = False
             else:
-               is_ok[i] = False
+                is_ok[i] = False
         c1 = list(cir[i])
         c2 = list(reversed(cir[j]))
         if same(c1, c2):
@@ -97,18 +113,19 @@ radc = []
 num = []
 
 for i in range(len(cir)):
-    if not is_ok[i]: continue
+    if not is_ok[i]:
+        continue
     c = cir[i]
-    norm_r = int((rad[c[0]] + rad[c[1]])/2.0)
+    norm_r = int((rad[c[0]] + rad[c[1]]) / 2.0)
     rad[c[0]] = norm_r
     rad[c[1]] = norm_r
 
-
 for i in range(len(cir)):
-    if not is_ok[i]: continue
+    if not is_ok[i]:
+        continue
     c = cir[i]
-    clr = (100,rn.randint(0,255),rn.randint(0,255))
-    cv2.circle(cimg,(x[c[0]],y[c[0]]),rad[c[0]],clr,2)
+    clr = (100, rn.randint(0, 255), rn.randint(0, 255))
+    cv2.circle(cimg, (x[c[0]], y[c[0]]), rad[c[0]], clr, 2)
     cv2.circle(cimg, (x[c[1]], y[c[1]]), rad[c[1]], clr, 2)
     xc.append(x[c[0]])
     xc.append(x[c[1]])
@@ -242,42 +259,46 @@ if (z == 15):
     rad2 = 50
 
 # отображение разметки
-real1 = cv2.circle(cimg,(x1,y1),rad1,(255,255,255),2)
-real2 = cv2.circle(cimg,(x2,y2),rad2,(255,255,255),2)
+real1 = cv2.circle(cimg, (x1, y1), rad1, (255, 255, 255), 2)
+real2 = cv2.circle(cimg, (x2, y2), rad2, (255, 255, 255), 2)
+
 
 # возвращает 1, если круг совпадает с кругом в разметке
-def has_in_markup(XC,YC,RADC):
-    return ((equal_cir(XC, YC, RADC, x1,y1, rad1)== 1) or (equal_cir(XC, YC, RADC, x2, y2, rad2) == 1))
+def has_in_markup(XC, YC, RADC):
+    return ((equal_cir(XC, YC, RADC, x1, y1, rad1) == 1) or
+            (equal_cir(XC, YC, RADC, x2, y2, rad2) == 1))
+
 
 # возвращает 1, если колесо было найдено
-def has_in_detected(X1,Y1,RAD1):
+def has_in_detected(X1, Y1, RAD1):
     has = False
     for i in range(len(xc)):
-        if (equal_cir(xc[i], yc[i], radc[i], X1, Y1, RAD1)== 1):
-           has = True
+        if (equal_cir(xc[i], yc[i], radc[i], X1, Y1, RAD1) == 1):
+            has = True
         else:
-           print('a',xc[i], yc[i], radc[i], X1, Y1, RAD1)
+            print('a', xc[i], yc[i], radc[i], X1, Y1, RAD1)
     return has
 
-tp = 0 # true positive
-fn = 0 # false negative
-fp = 0 # false positive
+
+tp = 0  # true positive
+fn = 0  # false negative
+fp = 0  # false positive
 
 for i in range(len(xc)):
-    if(has_in_markup(xc[i], yc[i], radc[i])):
-        tp = tp+1
+    if (has_in_markup(xc[i], yc[i], radc[i])):
+        tp = tp + 1
     else:
-        fp+=1
+        fp += 1
 
-if not has_in_detected(x1,y1,rad1):
-    fn +=1
+if not has_in_detected(x1, y1, rad1):
+    fn += 1
 
-if not has_in_detected(x2,y2,rad2):
-    fn +=1
+if not has_in_detected(x2, y2, rad2):
+    fn += 1
 
-print('true positive: ',tp)
+print('true positive: ', tp)
 print('false negative: ', fn)
 print('false positive: ', fp)
-cv2.imshow('FIND CIR',cimg)
+cv2.imshow('FIND CIR', cimg)
 cv2.waitKey(0)
 cv2.destroyAllWindows()
